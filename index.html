@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- PWA / Standalone mode tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -59,6 +59,9 @@
             /* Prevent pull-to-refresh on mobile */
             overscroll-behavior-y: none;
             -webkit-tap-highlight-color: transparent;
+            /* Adaptive centering for larger screens */
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         header {
@@ -531,8 +534,10 @@
         .btn-prompt-del { background-color: var(--danger-color); color: white; }
         .btn-prompt-keep { background-color: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); }
         
-        @media (max-width: 350px) {
+        /* Responsive Breakpoints for Mobile and Desktop/Tablet */
+        @media (max-width: 768px) {
             .charts-container { grid-template-columns: 1fr; }
+            .rating-pill { padding: 10px 2px; font-size: 0.75rem; }
         }
     </style>
 </head>
