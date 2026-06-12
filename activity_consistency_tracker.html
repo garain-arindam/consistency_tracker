@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA / Standalone mode tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tracker">
+    <meta name="theme-color" content="#121212">
+    <title>CONSISTENCY TRACKER</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* Dark Theme (Default) */
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --border-color: #333333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-color: #bb86fc;
+            --danger-color: #cf6679;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.5);
+            --chart-grid: #333333;
+        }
+
+        body.light-theme {
+            /* Light Theme */
+            --bg-color: #f3f4f6;
+            --surface-color: #ffffff;
+            --border-color: #e5e7eb;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --accent-color: #7c3aed; /* Vibrant Purple */
+            --danger-color: #ef4444;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --chart-grid: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* Smooth theme transitions for all structural elements */
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding: 16px;
+            padding-bottom: 40px;
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        header {
+            margin-bottom: 32px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: absolute;
+            right: 0;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .theme-toggle svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .theme-toggle .icon-moon { display: none; }
+        .theme-toggle .icon-sun { display: block; }
+        
+        body.light-theme .theme-toggle .icon-moon { display: block; }
+        body.light-theme .theme-toggle .icon-sun { display: none; }
+
+        /* Date Picker UI */
+        .date-picker-container {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .date-picker {
+            background-color: var(--surface-color);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        /* Force calendar picker to match theme on supported OS */
+        .date-picker { color-scheme: dark; }
+        body.light-theme .date-picker { color-scheme: light; }
+
+        .date-picker:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.2);
+        }
+        
+        body.light-theme .date-picker:focus {
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+        }
+
+        .date-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Innovative Card & Pill UI */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .activity-card {
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .activity-label {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .rating-row {
+            display: flex;
+            gap: 8px;
+            background-color: var(--bg-color);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .rating-pill {
+            flex: 1;
+            padding: 12px 4px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            cursor: pointer;
+            /* Snappy tactile animation */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Active Pill States with Semantic Colors */
+        .rating-pill.active {
+            background-color: var(--surface-color);
+            box-shadow: var(--shadow-sm);
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        body.light-theme .rating-pill.active {
+            background-color: #ffffff;
+        }
+
+        /* 0 = Neutral, 1 = Amber, 2 = Blue, 3 = Green */
+        .rating-pill[data-val="0"].active { color: var(--text-primary); border-bottom: 3px solid var(--text-secondary); }
+        .rating-pill[data-val="1"].active { color: #f59e0b; border-bottom: 3px solid #f59e0b; }
+        .rating-pill[data-val="2"].active { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
+        .rating-pill[data-val="3"].active { color: #10b981; border-bottom: 3px solid #10b981; }
+
+        /* General Input styling for internal components */
+        select, .add-input, .manage-input {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        select:focus, .add-input:focus, .manage-input:focus { border-color: var(--accent-color); }
+
+        /* Manage Activities UI */
+        .btn-toggle-manage {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            text-decoration: underline;
+            display: block;
+            margin: 0 auto 32px auto;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .manage-section {
+            display: none;
+            margin-bottom: 32px;
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .manage-section.visible { display: block; }
+
+        .manage-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .manage-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-color);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .manage-input {
+            flex: 1;
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-right: 12px;
+        }
+
+        .manage-input:focus { background-color: var(--surface-color); }
+
+        .btn-delete {
+            background-color: transparent;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .add-activity-container { display: flex; gap: 8px; }
+        .add-input { flex: 1; border-radius: 8px; padding: 12px; font-size: 1rem; }
+
+        .btn-add {
+            background-color: var(--accent-color);
+            color: #ffffff; /* keep white text on colorful button */
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Standard Buttons */
+        .btn-toggle {
+            width: 100%;
+            background-color: var(--surface-color);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            min-height: 56px;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-toggle:active { transform: scale(0.98); }
+
+        /* Chart Section */
+        .chart-section {
+            display: none; 
+            margin-top: 24px;
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-section.visible { display: block; }
+
+        .chart-header-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .chart-header-controls select {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+
+        /* Responsive Chart Grid */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .chart-item-container {
+            width: 100%;
+            background-color: var(--bg-color);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-item-container.full-width { grid-column: 1 / -1; }
+
+        .chart-wrapper {
+            position: relative;
+            height: 180px; 
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .chart-item-container.full-width .chart-wrapper { height: 250px; }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Stacked Layout Override */
+        .charts-container.stacked-layout { display: flex; flex-direction: column; gap: 24px; }
+        .charts-container.stacked-layout .chart-wrapper { height: 250px; }
+
+        /* Chart Toggles */
+        .chart-toggles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+            justify-content: center;
+        }
+
+        .chart-toggle-chip {
+            background-color: var(--bg-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 8px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .chart-toggle-chip.active {
+            background-color: rgba(187, 134, 252, 0.1);
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        /* Backup Section */
+        .backup-section {
+            margin-top: 24px;
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .warning-box {
+            background-color: rgba(207, 102, 121, 0.1);
+            border-left: 4px solid var(--danger-color);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .warning-box strong { color: var(--danger-color); }
+
+        .backup-controls { display: flex; gap: 12px; }
+
+        .btn-backup {
+            flex: 1;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-backup:active { background-color: var(--border-color); }
+        .btn-import-label { display: inline-block; }
+
+        #backup-status {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Modal UI */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            padding: 16px;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .modal-desc {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        
+        .prompt-actions { display: flex; gap: 12px; }
+
+        .prompt-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-prompt-del { background-color: var(--danger-color); color: white; }
+        .btn-prompt-keep { background-color: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); }
+        
+        @media (max-width: 350px) {
+            .charts-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-top">
+            <h1>CONSISTENCY TRACKER</h1>
+            <button class="theme-toggle" id="btn-theme-toggle" aria-label="Toggle Theme">
+                <!-- Moon Icon (Shows in Light Mode to switch to Dark) -->
+                <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z"/></svg>
+                <!-- Sun Icon (Shows in Dark Mode to switch to Light) -->
+                <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,4.64A7.36,7.36,0,1,0,19.36,12,7.37,7.37,0,0,0,12,4.64Zm0,12.72A5.36,5.36,0,1,1,17.36,12,5.37,5.37,0,0,1,12,17.36ZM12,3.18a1,1,0,0,0,1-1V1a1,1,0,0,0-2,0V2.18A1,1,0,0,0,12,3.18ZM5.41,6.83a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,4A1,1,0,0,0,4,5.41ZM2.18,11H1a1,1,0,0,0,0,2H2.18a1,1,0,0,0,0-2Zm16.41,6.17a1,1,0,0,0-1.42,1.42l1.42,1.41a1,1,0,0,0,1.42-1.41ZM23,11H21.82a1,1,0,0,0,0,2H23a1,1,0,0,0,0-2ZM18.59,4a1,1,0,0,0-1.42,1.42l1.41,1.42a1,1,0,1,0,1.42-1.42ZM12,20.82a1,1,0,0,0-1,1V23a1,1,0,0,0,2,0V21.82A1,1,0,0,0,12,20.82ZM6.83,18.59a1,1,0,0,0-1.42-1.42L4,18.59a1,1,0,0,0,1.41,1.42Z"/></svg>
+            </button>
+        </div>
+        <div class="date-picker-container">
+            <input type="date" id="date-picker" class="date-picker">
+        </div>
+        <div class="date-hint">✎ Tap date to add or edit past ratings</div>
+    </header>
+
+    <main>
+        <!-- Dynamic Input UI (Cards & Pills) -->
+        <div class="activity-list" id="activity-list">
+            <!-- Populated by JS -->
+        </div>
+
+        <button class="btn-toggle-manage" id="btn-toggle-manage">Manage Activities</button>
+
+        <div class="manage-section" id="manage-section">
+            <div class="manage-list" id="manage-list"></div>
+            <div class="add-activity-container">
+                <input type="text" id="new-activity-input" class="add-input" placeholder="New Activity Name">
+                <button class="btn-add" id="btn-add-activity">Add</button>
+            </div>
+        </div>
+
+        <button class="btn-toggle" id="btn-toggle-chart">Toggle Charts</button>
+
+        <section class="chart-section" id="chart-section">
+            <div class="chart-header-controls">
+                <select id="timeframe-select">
+                    <!-- Options injected by JS -->
+                </select>
+                <select id="layout-select">
+                    <option value="grid">Grid View</option>
+                    <option value="stacked">Stacked View</option>
+                </select>
+            </div>
+            <div id="chart-toggles" class="chart-toggles-container">
+                <!-- Toggles injected dynamically by JS -->
+            </div>
+            <div class="charts-container" id="charts-container">
+                <!-- Canvases injected dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- Data Backup Section -->
+        <section class="backup-section">
+            <h2 class="section-title">Data Management</h2>
+            <div class="warning-box">
+                <strong>WARNING:</strong> Your data lives ONLY in this browser's memory. If you clear your browser cache, use incognito mode, or switch phones, <strong>YOUR DATA IS PERMANENTLY GONE</strong>. Stop making excuses and download a backup regularly.
+            </div>
+            <div class="backup-controls">
+                <button class="btn-backup" id="btn-export">Export Data</button>
+                <label for="import-file" class="btn-backup btn-import-label">Import Data</label>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </div>
+            <div id="backup-status"></div>
+        </section>
+
+        <!-- Import Confirmation Modal -->
+        <div class="modal-overlay" id="import-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">Overwrite Data?</h2>
+                <p class="modal-desc">Importing this backup will completely wipe and replace your current tracking history. This cannot be undone. Are you sure?</p>
+                <div class="prompt-actions">
+                    <button class="btn-prompt-del" id="btn-confirm-import">Yes, Overwrite</button>
+                    <button class="btn-prompt-keep" id="btn-cancel-import">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Core Configuration ---
+        let activities = [];
+        const DEFAULT_ACTIVITIES = [
+            { id: 'act_0', name: 'Activity 1' },
+            { id: 'act_1', name: 'Activity 2' },
+            { id: 'act_2', name: 'Activity 3' },
+            { id: 'act_3', name: 'Activity 4' },
+            { id: 'act_4', name: 'Activity 5' }
+        ];
+        
+        // Punchy labels to fit inside the segmented pills
+        const OPTIONS = [
+            { label: 'None', value: 0 },
+            { label: 'Some', value: 1 },
+            { label: 'Fine', value: 2 },
+            { label: 'Great', value: 3 }
+        ];
+
+        const CHART_COLORS = [
+            '#bb86fc', '#03dac6', '#cf6679', '#ffeb3b', '#4caf50',
+            '#ff9800', '#00bcd4', '#e91e63', '#9c27b0', '#3f51b5'
+        ];
+
+        // --- State Management Variables ---
+        let activeDateStr = '';
+        let chartInstances = []; 
+        let visibleCharts = new Set(['overall']); 
+        let pendingImportData = null; 
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initDate();
+            initActivities();
+            initTimeframeSelect();
+            initLayoutToggle();
+            buildUI();
+            loadActiveDateData();
+            setupEventListeners();
+        });
+
+        // --- Theme Logic ---
+        function initTheme() {
+            const savedTheme = localStorage.getItem('tracker_theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light-theme');
+            localStorage.setItem('tracker_theme', isLight ? 'light' : 'dark');
+            
+            // Re-render chart if visible to dynamically update grid/text colors
+            if (document.getElementById('chart-section').classList.contains('visible')) {
+                renderCharts();
+            }
+        }
+
+        // --- Utility Functions ---
+        function getLocalDateString(date) {
+            const offset = date.getTimezoneOffset() * 60000;
+            return (new Date(date - offset)).toISOString().split('T')[0];
+        }
+
+        function initDate() {
+            const now = new Date();
+            activeDateStr = getLocalDateString(now);
+            
+            const datePicker = document.getElementById('date-picker');
+            datePicker.value = activeDateStr;
+            datePicker.max = activeDateStr; 
+
+            datePicker.addEventListener('change', (e) => {
+                if (!e.target.value) {
+                    e.target.value = getLocalDateString(new Date());
+                }
+                activeDateStr = e.target.value;
+                loadActiveDateData();
+            });
+        }
+
+        function initActivities() {
+            const saved = localStorage.getItem('tracker_activities');
+            if (saved) {
+                activities = JSON.parse(saved);
+            } else {
+                activities = [...DEFAULT_ACTIVITIES];
+                localStorage.setItem('tracker_activities', JSON.stringify(activities));
+            }
+        }
+
+        function parseDayData(dateStr) {
+            const saved = localStorage.getItem(dateStr);
+            if (!saved) return {};
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    let migrated = {};
+                    activities.forEach((act, idx) => {
+                        migrated[act.id] = parsed[idx] !== undefined ? parseInt(parsed[idx], 10) : 0;
+                    });
+                    return migrated;
+                }
+                return parsed;
+            } catch(e) {
+                return {};
+            }
+        }
+
+        function initTimeframeSelect() {
+            const select = document.getElementById('timeframe-select');
+            select.innerHTML = `
+                <option value="7">Last Week (7 Days)</option>
+                <option value="15" selected>Last 15 Days</option>
+                <option value="60">Last 2 Months (60 Days)</option>
+                <optgroup label="Month-Wise" id="month-group"></optgroup>
+            `;
+
+            const group = document.getElementById('month-group');
+            const now = new Date();
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = label;
+                group.appendChild(opt);
+            }
+        }
+
+        function initLayoutToggle() {
+            const savedLayout = localStorage.getItem('tracker_chart_layout') || 'grid';
+            const layoutSelect = document.getElementById('layout-select');
+            layoutSelect.value = savedLayout;
+            if (savedLayout === 'stacked') {
+                document.getElementById('charts-container').classList.add('stacked-layout');
+            }
+        }
+
+        // --- UI Construction ---
+        function buildUI() {
+            const listContainer = document.getElementById('activity-list');
+            const manageContainer = document.getElementById('manage-list');
+            
+            listContainer.innerHTML = '';
+            manageContainer.innerHTML = '';
+            
+            activities.forEach((act) => {
+                // Card Based Tracking UI
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'activity-card';
+                
+                const label = document.createElement('div');
+                label.className = 'activity-label';
+                label.textContent = act.name;
+
+                const ratingRow = document.createElement('div');
+                ratingRow.className = 'rating-row';
+
+                OPTIONS.forEach(opt => {
+                    const pill = document.createElement('button');
+                    pill.className = 'rating-pill';
+                    pill.dataset.val = opt.value;
+                    pill.dataset.id = act.id;
+                    pill.textContent = opt.label;
+                    ratingRow.appendChild(pill);
+                });
+
+                itemDiv.appendChild(label);
+                itemDiv.appendChild(ratingRow);
+                listContainer.appendChild(itemDiv);
+
+                // Manage List
+                const manageDiv = document.createElement('div');
+                manageDiv.className = 'manage-item';
+                
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.className = 'manage-input';
+                nameInput.value = act.name;
+                nameInput.dataset.id = act.id;
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-delete';
+                delBtn.textContent = 'Remove';
+                delBtn.dataset.id = act.id;
+
+                manageDiv.appendChild(nameInput);
+                manageDiv.appendChild(delBtn);
+                manageContainer.appendChild(manageDiv);
+            });
+        }
+
+        // --- Data Handling ---
+        function loadActiveDateData() {
+            const dayData = parseDayData(activeDateStr);
+            activities.forEach(act => {
+                const val = dayData[act.id] !== undefined ? dayData[act.id] : 0;
+                document.querySelectorAll(`.rating-pill[data-id="${act.id}"]`).forEach(btn => {
+                    if (parseInt(btn.dataset.val, 10) === val) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        function saveCurrentState() {
+            const dayData = parseDayData(activeDateStr); 
+            activities.forEach(act => {
+                const activePill = document.querySelector(`.rating-pill[data-id="${act.id}"].active`);
+                dayData[act.id] = activePill ? parseInt(activePill.dataset.val, 10) : 0;
+            });
+            localStorage.setItem(activeDateStr, JSON.stringify(dayData));
+
+            if (document.getElementById('chart-section').classList.contains('visible')) {
+                renderCharts();
+            }
+        }
+
+        function addActivity(name) {
+            if (!name.trim()) return;
+            const newAct = {
+                id: 'act_' + Date.now(),
+                name: name.trim()
+            };
+            activities.push(newAct);
+            localStorage.setItem('tracker_activities', JSON.stringify(activities));
+            
+            buildUI();
+            loadActiveDateData();
+            if (document.getElementById('chart-section').classList.contains('visible')) renderCharts();
+        }
+
+        function removeActivity(id) {
+            activities = activities.filter(a => a.id !== id);
+            visibleCharts.delete(id); 
+            localStorage.setItem('tracker_activities', JSON.stringify(activities));
+            
+            buildUI();
+            loadActiveDateData();
+            if (document.getElementById('chart-section').classList.contains('visible')) renderCharts();
+        }
+
+        function renameActivity(id, newName) {
+            const trimmed = newName.trim();
+            const act = activities.find(a => a.id === id);
+            
+            if (!trimmed) {
+                buildUI();
+                loadActiveDateData();
+                return;
+            }
+
+            if (act && act.name !== trimmed) {
+                act.name = trimmed;
+                localStorage.setItem('tracker_activities', JSON.stringify(activities));
+                buildUI();
+                loadActiveDateData();
+                if (document.getElementById('chart-section').classList.contains('visible')) renderCharts();
+            }
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            
+            // Value changes via Custom Pill UI
+            document.getElementById('activity-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('rating-pill')) {
+                    const actId = e.target.dataset.id;
+                    
+                    // Unselect all for this specific activity
+                    document.querySelectorAll(`.rating-pill[data-id="${actId}"]`).forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // Select tapped bubble
+                    e.target.classList.add('active');
+                    
+                    // Small tactile haptic feedback if mobile supports it
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    
+                    // Save instantly
+                    saveCurrentState();
+                }
+            });
+
+            // Toggle Manage UI
+            document.getElementById('btn-toggle-manage').addEventListener('click', () => {
+                document.getElementById('manage-section').classList.toggle('visible');
+            });
+
+            // Add Activity
+            document.getElementById('btn-add-activity').addEventListener('click', () => {
+                const input = document.getElementById('new-activity-input');
+                addActivity(input.value);
+                input.value = '';
+            });
+
+            // Remove Activity delegation
+            document.getElementById('manage-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-delete')) {
+                    removeActivity(e.target.dataset.id);
+                }
+            });
+
+            // Rename Activity delegation
+            document.getElementById('manage-list').addEventListener('change', (e) => {
+                if (e.target.classList.contains('manage-input')) {
+                    renameActivity(e.target.dataset.id, e.target.value);
+                }
+            });
+
+            // Theme Toggle
+            document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
+
+            // Timeframe Change
+            document.getElementById('timeframe-select').addEventListener('change', renderCharts);
+
+            // Layout Change
+            document.getElementById('layout-select').addEventListener('change', (e) => {
+                const layout = e.target.value;
+                localStorage.setItem('tracker_chart_layout', layout);
+                const container = document.getElementById('charts-container');
+                
+                if (layout === 'stacked') {
+                    container.classList.add('stacked-layout');
+                } else {
+                    container.classList.remove('stacked-layout');
+                }
+                renderCharts();
+            });
+
+            // Chart
+            document.getElementById('btn-toggle-chart').addEventListener('click', () => {
+                const chartSection = document.getElementById('chart-section');
+                if (!chartSection.classList.contains('visible')) {
+                    chartSection.classList.add('visible');
+                    renderCharts();
+                } else {
+                    chartSection.classList.remove('visible');
+                }
+            });
+
+            // Export Backup
+            document.getElementById('btn-export').addEventListener('click', exportData);
+
+            // Import Backup
+            document.getElementById('import-file').addEventListener('change', handleImportSelection);
+            
+            // Modal Actions
+            document.getElementById('btn-confirm-import').addEventListener('click', executeImport);
+            document.getElementById('btn-cancel-import').addEventListener('click', () => {
+                document.getElementById('import-modal').classList.remove('visible');
+                pendingImportData = null;
+                document.getElementById('import-file').value = ''; 
+            });
+        }
+
+        // --- Data Backup & Restore Logic ---
+        function exportData() {
+            const data = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                data[key] = localStorage.getItem(key);
+            }
+            
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tracker-backup-${getLocalDateString(new Date())}.json`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            const status = document.getElementById('backup-status');
+            status.textContent = 'Backup downloaded successfully.';
+            setTimeout(() => status.textContent = '', 3000);
+        }
+
+        function handleImportSelection(e) {
+            const file = e.target.files[0];
+            const status = document.getElementById('backup-status');
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    pendingImportData = JSON.parse(ev.target.result);
+                    document.getElementById('import-modal').classList.add('visible');
+                } catch (err) {
+                    status.textContent = 'Error: Invalid JSON backup file.';
+                    setTimeout(() => status.textContent = '', 3000);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function executeImport() {
+            if (pendingImportData) {
+                localStorage.clear();
+                for (const key in pendingImportData) {
+                    localStorage.setItem(key, pendingImportData[key]);
+                }
+                location.reload();
+            }
+        }
+
+        // --- Chart Logic ---
+        function getChartData() {
+            const timeframe = document.getElementById('timeframe-select').value;
+            const labels = [];
+            const rawData = [];
+            const dates = [];
+            const now = new Date();
+
+            if (['7', '15', '60'].includes(timeframe)) {
+                const days = parseInt(timeframe, 10);
+                for (let i = days - 1; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setDate(d.getDate() - i);
+                    dates.push(d);
+                }
+            } else {
+                const [year, month] = timeframe.split('-');
+                const startDate = new Date(year, parseInt(month) - 1, 1);
+                const endDate = new Date(year, parseInt(month), 0); 
+                const finalEndDate = endDate > now ? now : endDate;
+
+                for (let d = new Date(startDate); d <= finalEndDate; d.setDate(d.getDate() + 1)) {
+                    dates.push(new Date(d));
+                }
+            }
+
+            dates.forEach(d => {
+                const dateStr = getLocalDateString(d);
+                labels.push(dateStr.slice(5)); 
+                rawData.push(parseDayData(dateStr));
+            });
+
+            const selectEl = document.getElementById('timeframe-select');
+            const timeframeText = selectEl.options[selectEl.selectedIndex].text;
+
+            return { labels, rawData, timeframeText };
+        }
+
+        function renderCharts() {
+            const container = document.getElementById('charts-container');
+            const togglesContainer = document.getElementById('chart-toggles');
+            
+            container.innerHTML = ''; 
+            togglesContainer.innerHTML = '';
+            
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+
+            const createChip = (id, label) => {
+                const chip = document.createElement('div');
+                chip.className = `chart-toggle-chip ${visibleCharts.has(id) ? 'active' : ''}`;
+                chip.textContent = label;
+                chip.onclick = () => {
+                    if (visibleCharts.has(id)) visibleCharts.delete(id);
+                    else visibleCharts.add(id);
+                    renderCharts(); 
+                };
+                togglesContainer.appendChild(chip);
+            };
+
+            createChip('overall', 'Overall Summary');
+            activities.forEach(act => createChip(act.id, act.name));
+
+            const { labels, rawData } = getChartData();
+            
+            // Fetch active theme colors dynamically for the chart
+            const isLightMode = document.body.classList.contains('light-theme');
+            const gridColor = getComputedStyle(document.body).getPropertyValue('--chart-grid').trim();
+            const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim();
+            Chart.defaults.color = textColor;
+
+            if (visibleCharts.has('overall')) {
+                const maxScorePerDay = activities.length * 3;
+                const overallData = rawData.map(dayVals => {
+                    return activities.reduce((sum, act) => sum + (dayVals[act.id] || 0), 0);
+                });
+
+                createChartElement('Overall Summary', 'overallChartCanvas', true);
+                const overallCtx = document.getElementById('overallChartCanvas').getContext('2d');
+                
+                const overallChart = new Chart(overallCtx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: `Total Score`,
+                            data: overallData,
+                            borderColor: CHART_COLORS[0],
+                            backgroundColor: isLightMode ? CHART_COLORS[0] + '22' : CHART_COLORS[0] + '33',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHitRadius: 20
+                        }]
+                    },
+                    options: getChartOptions(maxScorePerDay + 1, gridColor)
+                });
+                chartInstances.push(overallChart);
+            }
+
+            activities.forEach((act, idx) => {
+                if (!visibleCharts.has(act.id)) return; 
+
+                const canvasId = `chart_${act.id}`;
+                createChartElement(act.name, canvasId, false);
+                
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const activityData = rawData.map(dayVals => dayVals[act.id] || 0);
+                const color = CHART_COLORS[(idx + 1) % CHART_COLORS.length]; 
+
+                const actChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: act.name,
+                            data: activityData,
+                            borderColor: color,
+                            backgroundColor: isLightMode ? color + '15' : color + '33',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointHitRadius: 20
+                        }]
+                    },
+                    options: getChartOptions(4, gridColor) 
+                });
+                chartInstances.push(actChart);
+            });
+        }
+
+        function createChartElement(titleText, canvasId, isFullWidth) {
+            const container = document.getElementById('charts-container');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chart-item-container';
+            if (isFullWidth) wrapper.classList.add('full-width');
+            
+            const title = document.createElement('h3');
+            title.className = 'chart-title';
+            title.textContent = titleText;
+            
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'chart-wrapper';
+            
+            const canvas = document.createElement('canvas');
+            canvas.id = canvasId;
+
+            chartWrapper.appendChild(canvas);
+            wrapper.appendChild(title);
+            wrapper.appendChild(chartWrapper);
+            
+            container.appendChild(wrapper);
+        }
+
+        function getChartOptions(yAxisMax, gridColor) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false } 
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: yAxisMax,
+                        ticks: { stepSize: 1, precision: 0 },
+                        grid: { color: gridColor }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45 
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
